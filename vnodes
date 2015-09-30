@@ -1,0 +1,58 @@
+#!/bin/sh
+# -*- sh -*-
+# 
+# Plugin to monitor the number of vnodes in the system.
+#
+# Parameters:
+# 	
+# 	config   (required)
+# 	autoconf (optional - used by munin-config)
+#
+# Magic markers (Used by munin-config and some installation scripts.
+# Optional):
+#
+#%# family=auto
+#%# capabilities=autoconf
+
+
+
+if [ "$1" = "autoconf" ]; then
+    if [ -x /sbin/sysctl ]; then
+        /sbin/sysctl vfs.numvnodes > /dev/null
+    	if [ $? = "0" ]; then
+	    	echo yes
+    		exit 0
+    	else
+		    echo no
+		    exit 0
+	    fi
+    else
+        echo no
+        exit 0
+    fi
+fi
+
+if [ "$1" = "config" ]; then
+
+	echo 'graph_title Vnode usage'
+	echo 'graph_args --base 1000 -l 0'
+	echo 'graph_vlabel number of vnodes'
+	echo 'graph_category system'
+	echo 'graph_info This graph monitors the number of vnodes.'
+	echo 'used.label num vnodes'
+	echo 'used.info Number of vnodes in existence.'
+	echo 'free.label free vnodes'
+	echo 'free.info Number of vnodes in the free list.'
+	echo 'max.label max vnodes'
+	echo 'max.info Maximum number of vnodes.'
+	#/sbin/sysctl -n kern.maxvnodes | awk '{printf "used.warning %d\nused.critical %d\n",$1*0.92,$1*0.98}'
+	/sbin/sysctl -n kern.maxvnodes | awk '{printf "used.warning %d\n",$1*0.98}'
+	exit 0
+fi
+
+echo -n 'max.value '
+/sbin/sysctl -n kern.maxvnodes
+echo -n 'used.value '
+/sbin/sysctl -n vfs.numvnodes
+echo -n 'free.value '
+/sbin/sysctl -n vfs.freevnodes
